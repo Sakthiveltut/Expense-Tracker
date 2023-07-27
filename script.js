@@ -1,52 +1,100 @@
-const balance = document.getElementById('balance')
-const money_plus = document.getElementById('money-plus')
-const money_minus = document.getElementById('money-minus')
-const list = document.getElementById('list')
-const form = document.getElementById('form')
-const text = document.getElementById('text')
-const amount = document.getElementById('amount')
+const balance = document.querySelector("#balance");
+const inc_amt = document.querySelector("#inc-amt");
+const exp_amt = document.querySelector("#exp-amt");
+const trans = document.querySelector("#trans");
+const form = document.querySelector("#form");
+const description = document.querySelector("#desc");
+const amount = document.querySelector("#amount");
+/*
+const dummyData = [
+  { id: 1, description: "Flower", amount: -20 },
+  { id: 2, description: "Salary", amount: 35000 },
+  { id: 3, description: "Book", amount: 10 },
+  { id: 4, description: "Camera", amount: -150 },
+  { id: 5, description: "Petrol", amount: -250 },
+];
 
-const dummyTransactions = [
-    {id:1, text:'Grocery', amount:-2000},
-    {id:2, text:'Salary', amount:10000},
-    {id:3, text:'Cinema', amount:-1000},
-    {id:4, text:'Trip', amount:-3000},
-    {id:5, text:'dinner', amount:-500},
-]
+let transactions = dummyData;
+*/
 
-let transactions = dummyTransactions;
+const localStorageTrans = JSON.parse(localStorage.getItem("trans"));
+let transactions = localStorage.getItem("trans") !== null ? localStorageTrans : [];
 
-function addTransactionDom(transcation){
-    const sign = transcation.amount < 0 ? '-' : '+';
-    const item = document.createElement('li');
-
-    item.classList.add(transcation.amount < 0 ? 'minus' : 'plus')
-    item.innerHTML = ` 
-    ${transcation.text} 
-    <span>${sign} ${Math.abs(transcation.amount)}</span>
-    <button class="delete-btn"> x </button>`;
-
-    list.append(item)
+function loadTransactionDetails(transaction) {
+  const sign = transaction.amount < 0 ? "-" : "+";
+  const item = document.createElement("li");
+  item.classList.add(transaction.amount < 0 ? "exp" : "inc");
+  item.innerHTML = `
+    ${transaction.description}
+    <span>${sign} ${Math.abs(transaction.amount)}</span>
+    <button class="btn-del" onclick="removeTrans(${transaction.id})">x</button>
+  `;
+  trans.appendChild(item);
+  //console.log(transaction);
 }
 
-function updateValue(){
-    const amounts = transactions.map(transcation => transcation.amount)
-    const total = amount.reduce((acc,item) => (acc += item), 0).toFixed(2)
-
-    const income = amounts
-                    .filter((item) => (item > 0))
-                    .reduce((acc,item) => (acc+=item),0)
-                    .toFixed(2)
-
-    balance.innerHTML = total > 0 ? total : 0;
-    money_plus.innerHTML = income;
-
+function removeTrans(id) {
+  if (confirm("Are you sure you want to delete Transcation?")) {
+    transactions = transactions.filter((transaction) => transaction.id != id);
+    config();
+    updateLocalStorage();
+  } else {
+    return;
+  }
 }
 
-function init(){
-    list.innerHTML = ""
-    transactions.forEach(addTransactionDom)
-    updateValue()
+function updateAmount() {
+  const amounts = transactions.map((transaction) => transaction.amount);
+  const total = amounts.reduce((acc, item) => (acc += item), 0).toFixed(2);
+  balance.innerHTML = `₹  ${total}`;
+
+  const income = amounts
+    .filter((item) => item > 0)
+    .reduce((acc, item) => (acc += item), 0)
+    .toFixed(2);
+  inc_amt.innerHTML = `₹  ${income}`;
+
+  const expense = amounts
+    .filter((item) => item < 0)
+    .reduce((acc, item) => (acc += item), 0)
+    .toFixed(2);
+  exp_amt.innerHTML = `₹  ${Math.abs(expense)}`;
+}
+function config() {
+  trans.innerHTML = "";
+  transactions.forEach(loadTransactionDetails);
+  updateAmount();
 }
 
-init()
+function addTransaction(e) {
+  e.preventDefault();
+  if (description.value.trim() == "" || amount.value.trim() == "") {
+    alert("Please Enter Description and amount");
+  } else {
+    const transaction = {
+      id: uniqueId(),
+      description: description.value,
+      amount: +amount.value,
+    };
+    transactions.push(transaction);
+    loadTransactionDetails(transaction);
+    description.value = "";
+    amount.value = "";
+    updateAmount();
+    updateLocalStorage();
+  }
+}
+
+function uniqueId() {
+  return Math.floor(Math.random() * 10000000);
+}
+
+form.addEventListener("submit", addTransaction);
+
+window.addEventListener("load", function () {
+  config();
+});
+
+function updateLocalStorage() {
+  localStorage.setItem("trans", JSON.stringify(transactions));
+}
